@@ -4,3 +4,4 @@ server/dist
 .pms-data
 .DS_Store
 *.log
+tsconfig*.tsbuildinfo
