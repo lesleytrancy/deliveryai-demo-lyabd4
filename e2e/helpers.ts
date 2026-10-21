@@ -1,37 +1,59 @@
-import { type Page, expect, type Locator } from '@playwright/test'
+import { type Page, expect } from '@playwright/test'
 
-/** 使用演示账号登录（密码均为 123456）。 */
+// 全局注册：自动接受所有浏览器 alert/confirm/prompt，避免因重复 handler 导致
+// "Cannot accept dialog which is already handled"。
+function autoAcceptDialogs(page: Page) {
+  // 用稳定标记避免跨 loginAs 重复绑定
+  if ((page as any).__pmsAutoDialog) return
+  ;(page as any).__pmsAutoDialog = true
+  page.on('dialog', async d => {
+    try { await d.accept() } catch { /* 已被其他 handler 处理 */ }
+  })
+}
+
 export async function loginAs(page: Page, username: string) {
+  autoAcceptDialogs(page)
   await page.goto('/login')
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
   await expect(page.getByRole('heading', { name: '登录' })).toBeVisible()
-  // LoginPage 中用户名/密码为通用 input，用 label 关联需要显式 htmlFor，这里用 placeholder 定位
+  await page.getByPlaceholder('用户名').fill('')
   await page.getByPlaceholder('用户名').fill(username)
   await page.getByPlaceholder('密码').fill('123456')
   await page.getByRole('button', { name: '登 录' }).click()
   await expect(page).toHaveURL(/#\/$/)
+  await expect(page.locator('aside nav a').first()).toBeVisible()
 }
 
-/** admin 重置演示数据，用例间数据隔离。 */
 export async function resetDemo(page: Page) {
+  autoAcceptDialogs(page)
   await loginAs(page, 'admin')
-  page.once('dialog', d => d.accept())
+  // resetDemo 自己触发的 confirm 需要被接受；上面的全局 handler 会处理
   await page.getByRole('button', { name: /重置演示/ }).click()
   await page.waitForLoadState('networkidle')
+  await expect(page.locator('aside nav a').first()).toBeVisible()
 }
 
-/** 侧边栏导航。 */
+export async function switchUser(page: Page, username: string) {
+  await loginAs(page, username)
+}
+
 export async function navTo(page: Page, label: string) {
-  await page.getByRole('link', { name: new RegExp(label) }).first().click()
+  const link = page.locator('aside nav a').filter({ hasText: new RegExp('^' + label + '$') }).first()
+  await link.waitFor({ state: 'visible', timeout: 10000 })
+  await link.click()
 }
 
-/** 在 Modal/Form 中按字段标签定位 input / select / textarea。Field 结构为 <label><span>label</span>{control}</label>。 */
-export function field(page: Page | import('@playwright/test').Locator, labelText: string): import('@playwright/test').Locator {
-  const base = page as import('@playwright/test').Locator
-  // 找到包含该标签文本的 span（text-slate-600 mb-1），再取其同 label 下第一个 input/select/textarea
-  return base.locator('label').filter({ has: base.locator(`span:has-text("${labelText}")`).first() }).locator('input, select, textarea').first()
+export function field(base: Page | ReturnType<Page['locator']>, labelText: string) {
+  const loc = 'locator' in base ? (base as ReturnType<Page['locator']>) : (base as Page).locator('body')
+  return loc.locator('label').filter({ hasText: labelText }).locator('input, select, textarea').first()
 }
 
-/** 简单等待网络空闲。 */
 export async function waitForIdle(page: Page) {
   await page.waitForLoadState('networkidle')
+}
+
+export function modal(page: Page, title: string | RegExp) {
+  const heading = page.getByRole('heading', { name: title, level: 3 })
+  return heading.locator('xpath=ancestor::div[contains(@class,"rounded-lg shadow-xl")][1]')
 }
