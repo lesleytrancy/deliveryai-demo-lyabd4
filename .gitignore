@@ -1,8 +1,6 @@
-node_modules/
-dist/
-playwright-report/
-test-results/
+node_modules
+dist
+server/dist
+.pms-data
 .DS_Store
 *.log
-.vefaas/
-*.tsbuildinfo

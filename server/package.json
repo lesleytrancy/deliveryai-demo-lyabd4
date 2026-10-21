@@ -1,5 +1,5 @@
 {
-  "name": "hdl-order-demo-server",
+  "name": "pms-server",
   "private": true,
   "version": "1.0.0",
   "type": "module",

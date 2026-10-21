@@ -1,12 +1,18 @@
 {
-  "name": "hdl-order-demo",
+  "name": "jiuda-purchase-ms",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "dev": "concurrently -k -n server,web -c blue,green \"npm --prefix server run dev\" \"vite --host 0.0.0.0\"",
+    "web:dev": "vite --host 0.0.0.0",
+    "server:dev": "npm --prefix server run dev",
+    "build": "npm run build:web && npm run build:server",
+    "build:web": "tsc -b tsconfig.app.json && vite build",
+    "build:server": "npm --prefix server run build",
+    "start": "npm --prefix server run start",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives",
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",
@@ -18,6 +24,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.11",
+    "react-router-dom": "^7.18.4",
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
@@ -27,6 +34,7 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
